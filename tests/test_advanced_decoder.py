@@ -1,6 +1,7 @@
 import base64
 
 from advanced_decoder import decode_with_report
+from runtime_decoder import decode_in_isolated_runtime
 
 
 def test_static_base64_is_decoded_and_reported_complete():
@@ -14,7 +15,7 @@ def test_static_base64_is_decoded_and_reported_complete():
     assert report.warnings == []
 
 
-def test_runtime_obfuscation_is_not_claimed_complete():
+def test_runtime_obfuscation_is_not_claimed_complete_by_static_decoder():
     report = decode_with_report(
         '<script>var _0xabc = String.fromCharCode(60,104); eval(_0xabc);</script>'
     )
@@ -22,3 +23,13 @@ def test_runtime_obfuscation_is_not_claimed_complete():
     assert report.complete is False
     assert report.warnings
     assert "custom JavaScript state-machine layer remains" in report.warnings
+
+
+def test_isolated_runtime_captures_document_output_when_node_is_available():
+    source = '<script>document.write("<html><body>runtime</body></html>");</script>'
+    report = decode_in_isolated_runtime(source)
+
+    if report.warnings == ["Node.js runtime is unavailable"]:
+        return
+    assert report.complete is True
+    assert "runtime" in report.content
